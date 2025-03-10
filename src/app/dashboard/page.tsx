@@ -83,7 +83,7 @@ export default function Dashboard() {
     }
 
     fetchDashboardStats()
-  }, [])
+  }, [refreshTrigger])
 
   const handleRefresh = () => {
     setRefreshTrigger((prev) => prev + 1)
@@ -332,7 +332,7 @@ export default function Dashboard() {
                         onClick={() => handleCategorySelect("thisWeek", "pending")}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="rounded-full p-1.5 bg-blue-50 text-blue-600">
+                          <div className="rounded-full p-1.5 bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
                             <Calendar className="h-4 w-4" />
                           </div>
                           <div>
@@ -361,7 +361,7 @@ export default function Dashboard() {
                         onClick={() => handleCategorySelect("thisMonth", "pending")}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="rounded-full p-1.5 bg-purple-50 text-purple-600">
+                          <div className="rounded-full p-1.5 bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-400">
                             <CalendarClock className="h-4 w-4" />
                           </div>
                           <div>
@@ -390,7 +390,7 @@ export default function Dashboard() {
                         onClick={() => handleCategorySelect("overdue", "pending")}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="rounded-full p-1.5 bg-red-50 text-red-600">
+                          <div className="rounded-full p-1.5 bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400">
                             <AlertTriangle className="h-4 w-4" />
                           </div>
                           <div>
@@ -400,7 +400,7 @@ export default function Dashboard() {
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="text-right">
-                            <span className="text-xl font-bold text-red-600">
+                            <span className="text-xl font-bold text-red-600 dark:text-red-400">
                               {getCategoryCount("overdue", "pending")}
                             </span>
                             <span className="text-xs text-muted-foreground ml-1">notices</span>
@@ -445,7 +445,7 @@ export default function Dashboard() {
                         onClick={() => handleCategorySelect("thisWeek", "hearing")}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="rounded-full p-1.5 bg-blue-50 text-blue-600">
+                          <div className="rounded-full p-1.5 bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
                             <Calendar className="h-4 w-4" />
                           </div>
                           <div>
@@ -474,7 +474,7 @@ export default function Dashboard() {
                         onClick={() => handleCategorySelect("thisMonth", "hearing")}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="rounded-full p-1.5 bg-purple-50 text-purple-600">
+                          <div className="rounded-full p-1.5 bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-400">
                             <CalendarClock className="h-4 w-4" />
                           </div>
                           <div>
@@ -503,7 +503,7 @@ export default function Dashboard() {
                         onClick={() => handleCategorySelect("overdue", "hearing")}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="rounded-full p-1.5 bg-red-50 text-red-600">
+                          <div className="rounded-full p-1.5 bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400">
                             <AlertTriangle className="h-4 w-4" />
                           </div>
                           <div>
@@ -513,7 +513,7 @@ export default function Dashboard() {
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="text-right">
-                            <span className="text-xl font-bold text-red-600">
+                            <span className="text-xl font-bold text-red-600 dark:text-red-400">
                               {getCategoryCount("overdue", "hearing")}
                             </span>
                             <span className="text-xs text-muted-foreground ml-1">hearings</span>
@@ -570,14 +570,18 @@ export default function Dashboard() {
                       <div className="flex flex-col items-end gap-1.5">
                         <Badge
                           variant="secondary"
-                          className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 text-xs py-0.5"
+                          className={
+                            notice.status === "Completed"
+                              ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-950/30 dark:text-green-400 text-xs py-0.5"
+                              : "bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-950/30 dark:text-yellow-400 text-xs py-0.5"
+                          }
                         >
-                          Pending
+                          {notice.status}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
                           {selectedNoticeType === "pending"
-                            ? `Due: ${notice.dueDate ? new Date(notice.dueDate).toLocaleDateString() : "Not set"}`
-                            : `Hearing: ${notice.hearingDate ? new Date(notice.hearingDate).toLocaleDateString() : "Not set"}`}
+                            ? `Due: ${notice.dueDate ? new Date(notice.dueDate).toLocaleDateString("en-GB") : "Not set"}`
+                            : `Hearing: ${notice.hearingDate ? new Date(notice.hearingDate).toLocaleDateString("en-GB") : "Not set"}`}
                         </span>
                       </div>
                     </div>

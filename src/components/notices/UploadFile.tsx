@@ -11,12 +11,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
 interface UploadFileProps {
-  type: "notice" | "reply" | "order" | "received-notice"; // ✅ Added "received-notice"
+  type: "notice" | "reply" | "order" | "received-notice";
   noticeId: string;
+  clientName: string;
+  noticeHeading: string; // Main notice heading
+  sectionHeading?: string; // ✅ Heading specific to reply/order/received-notice
   onFileUpload: (fileUrl: string) => void;
 }
 
-export default function UploadFile({ type, noticeId, onFileUpload }: UploadFileProps) {
+export default function UploadFile({ type, noticeId, clientName = "", noticeHeading = "", sectionHeading = "", onFileUpload }: UploadFileProps) {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
@@ -26,7 +29,6 @@ export default function UploadFile({ type, noticeId, onFileUpload }: UploadFileP
   const handleUpload = async () => {
     if (!file) {
       toast({ variant: "destructive", title: "Error", description: "Please select a file first." });
-      console.error("❌ No file selected. Upload aborted.");
       return;
     }
 
@@ -36,10 +38,17 @@ export default function UploadFile({ type, noticeId, onFileUpload }: UploadFileP
     const formData = new FormData();
     formData.append("file", file);
     formData.append("type", type);
-    formData.append("noticeId", noticeId);
+    formData.append("clientName", clientName ?? ""); 
+    formData.append("noticeHeading", noticeHeading ?? "");
 
-    console.log("📤 Uploading file:", file);
-    console.log("📦 FormData being sent:", [...formData.entries()]); 
+    // ✅ Use sectionHeading instead of prompting
+    const finalHeading = (type === "reply" || type === "order" || type === "received-notice") ? sectionHeading?.trim() || "" : noticeHeading;
+    if (!finalHeading) {
+      toast({ variant: "destructive", title: "Error", description: "Heading is required for this document." });
+      return;
+    }
+
+    formData.append("sectionHeading", finalHeading);
 
     try {
       const uploadResponse = await axiosInstance.post("/upload/upload", formData, {
@@ -53,9 +62,7 @@ export default function UploadFile({ type, noticeId, onFileUpload }: UploadFileP
       });
 
       const fileUrl = uploadResponse.data.fileUrl;
-      if (!fileUrl) {
-        throw new Error("File upload failed.");
-      }
+      if (!fileUrl) throw new Error("File upload failed.");
 
       console.log("✅ File uploaded successfully. URL:", fileUrl);
       onFileUpload(fileUrl);
@@ -96,7 +103,7 @@ export default function UploadFile({ type, noticeId, onFileUpload }: UploadFileP
         }
       }
     },
-    [toast],
+    [toast]
   );
 
   const removeFile = () => {

@@ -21,6 +21,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { CalendarIcon, FileIcon, FileTextIcon, Loader2Icon, PlusIcon } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { format } from "date-fns"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { cn } from "@/lib/utils"
 
 interface NoticeDetailsProps {
   noticeId: string
@@ -32,14 +36,30 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
   const { toast } = useToast()
   const [notice, setNotice] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+
+  // Reply state
   const [reply, setReply] = useState({ heading: "", replyDate: "" })
-  const [order, setOrder] = useState({ heading: "", receivingDate: "" })
-  const [receivedNotice, setReceivedNotice] = useState({ heading: "", dueDate: "", hearingDate: "" })
+  const [replyDate, setReplyDate] = useState<Date | undefined>(undefined)
   const [replyFileUrl, setReplyFileUrl] = useState<string>("")
-  const [orderFileUrl, setOrderFileUrl] = useState<string>("")
-  const [receivedNoticeFileUrl, setReceivedNoticeFileUrl] = useState<string>("")
   const [isSubmittingReply, setIsSubmittingReply] = useState(false)
+
+  // Order state
+  const [order, setOrder] = useState({ heading: "", receivingDate: "", demandedIncomeTax: "" })
+  const [orderReceivingDate, setOrderReceivingDate] = useState<Date | undefined>(undefined)
+  const [orderFileUrl, setOrderFileUrl] = useState<string>("")
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false)
+
+  // Received notice state
+  const [receivedNotice, setReceivedNotice] = useState({
+    heading: "",
+    dueDate: "",
+    hearingDate: "",
+    receivingDate: "", // Add this line
+  })
+  const [receivedNoticeDueDate, setReceivedNoticeDueDate] = useState<Date | undefined>(undefined)
+  const [receivedNoticeHearingDate, setReceivedNoticeHearingDate] = useState<Date | undefined>(undefined)
+  const [receivedNoticeReceivingDate, setReceivedNoticeReceivingDate] = useState<Date | undefined>(undefined)
+  const [receivedNoticeFileUrl, setReceivedNoticeFileUrl] = useState<string>("")
   const [isSubmittingReceivedNotice, setIsSubmittingReceivedNotice] = useState(false)
 
   useEffect(() => {
@@ -62,10 +82,24 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
     if (open) fetchNoticeDetails()
   }, [noticeId, open, toast])
 
+  const formatDisplayDate = (dateString: string) => {
+    if (!dateString) return ""
+    try {
+      return format(new Date(dateString), "dd/MM/yyyy")
+    } catch (error) {
+      return "Invalid date"
+    }
+  }
+
   const handleSubmitReceivedNotice = async () => {
     try {
       if (!receivedNoticeFileUrl) {
         toast({ variant: "destructive", title: "Error", description: "Please upload a file first." })
+        return
+      }
+
+      if (!receivedNotice.heading || !receivedNotice.receivingDate) {
+        toast({ variant: "destructive", title: "Error", description: "Please fill in all required fields." })
         return
       }
 
@@ -84,7 +118,10 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
         hearingDate: response.data.updatedNotice.hearingDate,
       }))
 
-      setReceivedNotice({ heading: "", dueDate: "", hearingDate: "" })
+      setReceivedNotice({ heading: "", dueDate: "", hearingDate: "", receivingDate: "" })
+      setReceivedNoticeDueDate(undefined)
+      setReceivedNoticeHearingDate(undefined)
+      setReceivedNoticeReceivingDate(undefined)
       setReceivedNoticeFileUrl("")
     } catch (error) {
       console.error("Error adding received notice:", error)
@@ -106,6 +143,7 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
       toast({ title: "Success", description: "Reply added successfully" })
 
       setReply({ heading: "", replyDate: "" })
+      setReplyDate(undefined)
       setReplyFileUrl("")
       setNotice((prev: any) => ({
         ...prev,
@@ -129,7 +167,8 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
       await axiosInstance.post(`/notices/${noticeId}/order`, { ...order, fileUrl: orderFileUrl })
       toast({ title: "Success", description: "Order added successfully" })
 
-      setOrder({ heading: "", receivingDate: "" })
+      setOrder({ heading: "", receivingDate: "", demandedIncomeTax: "" })
+      setOrderReceivingDate(undefined)
       setOrderFileUrl("")
       setNotice((prev: any) => ({
         ...prev,
@@ -146,6 +185,42 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
       })
     } finally {
       setIsSubmittingOrder(false)
+    }
+  }
+
+  // Handle date selection from calendar
+  const handleDateChange = (date: Date | undefined, field: string, stateUpdater: Function) => {
+    // Update the date picker state
+    stateUpdater(date)
+
+    if (date) {
+      // Format date as YYYY-MM-DD for backend
+      const formattedDate = format(date, "yyyy-MM-dd")
+
+      if (field.startsWith("reply")) {
+        setReply((prev) => ({ ...prev, replyDate: formattedDate }))
+      } else if (field.startsWith("order")) {
+        setOrder((prev) => ({ ...prev, receivingDate: formattedDate }))
+      } else if (field.includes("Due")) {
+        setReceivedNotice((prev) => ({ ...prev, dueDate: formattedDate }))
+      } else if (field.includes("Hearing")) {
+        setReceivedNotice((prev) => ({ ...prev, hearingDate: formattedDate }))
+      } else if (field.includes("Receiving")) {
+        setReceivedNotice((prev) => ({ ...prev, receivingDate: formattedDate }))
+      }
+    } else {
+      // Clear the date if undefined
+      if (field.startsWith("reply")) {
+        setReply((prev) => ({ ...prev, replyDate: "" }))
+      } else if (field.startsWith("order")) {
+        setOrder((prev) => ({ ...prev, receivingDate: "" }))
+      } else if (field.includes("Due")) {
+        setReceivedNotice((prev) => ({ ...prev, dueDate: "" }))
+      } else if (field.includes("Hearing")) {
+        setReceivedNotice((prev) => ({ ...prev, hearingDate: "" }))
+      } else if (field.includes("Receiving")) {
+        setReceivedNotice((prev) => ({ ...prev, receivingDate: "" }))
+      }
     }
   }
 
@@ -181,7 +256,7 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
               <CardHeader>
                 <CardTitle className="text-lg">Notice Information</CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-4">
+              <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <Label className="text-muted-foreground">Client</Label>
                   <p className="font-medium">{notice.client?.name}</p>
@@ -197,6 +272,10 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                 <div className="space-y-1">
                   <Label className="text-muted-foreground">Tax Year</Label>
                   <p className="font-medium">{notice.taxYear}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">Tax Office</Label>
+                  <p className="font-medium">{notice.taxOffice || "N/A"}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-muted-foreground">Status</Label>
@@ -215,7 +294,7 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                     {notice.status}
                   </p>
                 </div>
-                <div className="col-span-2 mt-2 flex justify-end">
+                <div className="col-span-1 sm:col-span-2 mt-2 flex justify-end">
                   {notice.fileUrl && (
                     <Button variant="outline" size="sm" asChild>
                       <a href={notice.fileUrl} target="_blank" rel="noopener noreferrer">
@@ -231,15 +310,15 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
               <CardHeader>
                 <CardTitle className="text-lg">Important Dates</CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-3 gap-4">
+              <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <Label className="text-muted-foreground">Receiving Date</Label>
-                  <p className="font-medium">{new Date(notice.receivingDate).toLocaleDateString()}</p>
+                  <p className="font-medium">{formatDisplayDate(notice.receivingDate)}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-muted-foreground">Due Date</Label>
                   <p className="font-medium flex items-center">
-                    {new Date(notice.dueDate).toLocaleDateString()}
+                    {formatDisplayDate(notice.dueDate)}
                     {new Date(notice.dueDate) < new Date() ? (
                       <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full">Overdue</span>
                     ) : new Date(notice.dueDate) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) ? (
@@ -251,9 +330,7 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                 </div>
                 <div className="space-y-1">
                   <Label className="text-muted-foreground">Hearing Date</Label>
-                  <p className="font-medium">
-                    {notice.hearingDate ? new Date(notice.hearingDate).toLocaleDateString() : "N/A"}
-                  </p>
+                  <p className="font-medium">{notice.hearingDate ? formatDisplayDate(notice.hearingDate) : "N/A"}</p>
                 </div>
               </CardContent>
             </Card>
@@ -285,13 +362,13 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                         {notice.replies.map((reply: any, index: number) => (
                           <div
                             key={reply._id || `reply-${index}`}
-                            className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                            className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-muted rounded-lg gap-2"
                           >
                             <div>
                               <p className="font-medium">{reply.heading}</p>
                               <p className="text-sm text-muted-foreground">
                                 <CalendarIcon className="inline-block w-4 h-4 mr-1" />
-                                {new Date(reply.replyDate).toLocaleDateString()}
+                                {formatDisplayDate(reply.replyDate)}
                               </p>
                             </div>
                             {reply.fileUrl && (
@@ -324,17 +401,34 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                         </div>
                         <div className="grid gap-2">
                           <Label htmlFor="reply-date">Reply Date</Label>
-                          <Input
-                            id="reply-date"
-                            type="date"
-                            value={reply.replyDate}
-                            onChange={(e) => setReply({ ...reply, replyDate: e.target.value })}
-                          />
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                id="reply-date"
+                                variant="outline"
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !replyDate && "text-muted-foreground",
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {replyDate ? format(replyDate, "dd/MM/yyyy") : <span>Select date</span>}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={replyDate}
+                                onSelect={(date) => handleDateChange(date, "replyDate", setReplyDate)}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
                         </div>
                         <div className="grid gap-2">
                           <Label>Upload Reply Document</Label>
                           <div className="border rounded-md p-2">
-                            <UploadFile type="reply" noticeId={noticeId} onFileUpload={(url) => setReplyFileUrl(url)} />
+                          <UploadFile type="reply" noticeId={noticeId} clientName={notice.client?.name || ""} noticeHeading={notice.heading || ""} sectionHeading={reply.heading} onFileUpload={(url) => setReplyFileUrl(url)} />
                             {replyFileUrl && (
                               <p className="text-xs text-green-600 mt-1">
                                 <FileIcon className="inline-block w-3 h-3 mr-1" />
@@ -377,16 +471,21 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                         {notice.orders.map((order: any, index: number) => (
                           <div
                             key={order._id || `order-${index}`}
-                            className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                            className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-muted rounded-lg gap-2"
                           >
                             <div>
                               <p className="font-medium">{order.heading}</p>
-                              {order.receivingDate && (
-                                <p className="text-sm text-muted-foreground">
-                                  <CalendarIcon className="inline-block w-4 h-4 mr-1" />
-                                  {new Date(order.receivingDate).toLocaleDateString()}
-                                </p>
-                              )}
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-muted-foreground">
+                                {order.receivingDate && (
+                                  <p>
+                                    <CalendarIcon className="inline-block w-4 h-4 mr-1" />
+                                    {formatDisplayDate(order.receivingDate)}
+                                  </p>
+                                )}
+                                {order.demandedIncomeTax && (
+                                  <p className="font-medium">Demanded Tax: {order.demandedIncomeTax}</p>
+                                )}
+                              </div>
                             </div>
                             {order.fileUrl && (
                               <Button variant="outline" size="sm" asChild>
@@ -415,18 +514,51 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                             onChange={(e) => setOrder({ ...order, heading: e.target.value })}
                           />
                         </div>
-                        <div className="grid gap-2">
-                          <Label>Receiving Date</Label>
-                          <Input
-                            type="date"
-                            value={order.receivingDate}
-                            onChange={(e) => setOrder({ ...order, receivingDate: e.target.value })}
-                          />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="grid gap-2">
+                            <Label>Receiving Date</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !orderReceivingDate && "text-muted-foreground",
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {orderReceivingDate ? (
+                                    format(orderReceivingDate, "dd/MM/yyyy")
+                                  ) : (
+                                    <span>Select date</span>
+                                  )}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={orderReceivingDate}
+                                  onSelect={(date) =>
+                                    handleDateChange(date, "orderReceivingDate", setOrderReceivingDate)
+                                  }
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                          <div className="grid gap-2">
+                            <Label>Demanded Income Tax</Label>
+                            <Input
+                              placeholder="Enter amount"
+                              value={order.demandedIncomeTax}
+                              onChange={(e) => setOrder({ ...order, demandedIncomeTax: e.target.value })}
+                            />
+                          </div>
                         </div>
                         <div className="grid gap-2">
                           <Label>Upload Order Document</Label>
                           <div className="border rounded-md p-2">
-                            <UploadFile type="order" noticeId={noticeId} onFileUpload={(url) => setOrderFileUrl(url)} />
+                          <UploadFile type="order" noticeId={noticeId} clientName={notice.client?.name || ""} noticeHeading={notice.heading || ""} sectionHeading={order.heading} onFileUpload={(url) => setOrderFileUrl(url)} />
                             {orderFileUrl && (
                               <p className="text-xs text-green-600 mt-1">
                                 <FileIcon className="inline-block w-3 h-3 mr-1" />
@@ -468,13 +600,13 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                         {notice.receivedNotices.map((rn: any, index: number) => (
                           <div
                             key={rn._id || `received-${index}`}
-                            className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                            className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-muted rounded-lg gap-2"
                           >
                             <div>
                               <p className="font-medium">{rn.heading}</p>
                               <p className="text-sm text-muted-foreground">
-                                Due: {new Date(rn.dueDate).toLocaleDateString()} | Hearing:{" "}
-                                {rn.hearingDate ? new Date(rn.hearingDate).toLocaleDateString() : "N/A"}
+                                Received: {formatDisplayDate(rn.receivingDate)} | Due: {formatDisplayDate(rn.dueDate)} |
+                                Hearing: {rn.hearingDate ? formatDisplayDate(rn.hearingDate) : "N/A"}
                               </p>
                             </div>
                             {rn.fileUrl && (
@@ -493,7 +625,7 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
 
                     <Separator className="my-6" />
 
-                    {/* ✅ Add Received Notice Form */}
+                    {/* Add Received Notice Form */}
                     <div className="space-y-4">
                       <h4 className="font-medium">Add Received Notice</h4>
                       <div className="grid gap-4">
@@ -506,32 +638,77 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                             onChange={(e) => setReceivedNotice({ ...receivedNotice, heading: e.target.value })}
                           />
                         </div>
-                        <div className="grid gap-2">
-                          <Label htmlFor="notice-due-date">Due Date</Label>
-                          <Input
-                            id="notice-due-date"
-                            type="date"
-                            value={receivedNotice.dueDate}
-                            onChange={(e) => setReceivedNotice({ ...receivedNotice, dueDate: e.target.value })}
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                          <Label htmlFor="notice-hearing-date">Hearing Date</Label>
-                          <Input
-                            id="notice-hearing-date"
-                            type="date"
-                            value={receivedNotice.hearingDate}
-                            onChange={(e) => setReceivedNotice({ ...receivedNotice, hearingDate: e.target.value })}
-                          />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="grid gap-2">
+                            <Label htmlFor="notice-receiving-date">Receiving Date</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  id="notice-receiving-date"
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !receivedNoticeReceivingDate && "text-muted-foreground",
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {receivedNoticeReceivingDate ? (
+                                    format(receivedNoticeReceivingDate, "dd/MM/yyyy")
+                                  ) : (
+                                    <span>Select date</span>
+                                  )}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={receivedNoticeReceivingDate}
+                                  onSelect={(date) =>
+                                    handleDateChange(date, "noticeReceivingDate", setReceivedNoticeReceivingDate)
+                                  }
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="notice-due-date" className="flex items-center gap-1">
+                              Due Date
+                              <span className="text-xs text-muted-foreground">(Optional)</span>
+                            </Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  id="notice-due-date"
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !receivedNoticeDueDate && "text-muted-foreground",
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {receivedNoticeDueDate ? (
+                                    format(receivedNoticeDueDate, "dd/MM/yyyy")
+                                  ) : (
+                                    <span>Select date</span>
+                                  )}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={receivedNoticeDueDate}
+                                  onSelect={(date) => handleDateChange(date, "noticeDueDate", setReceivedNoticeDueDate)}
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
                         </div>
                         <div className="grid gap-2">
                           <Label>Upload Document</Label>
                           <div className="border rounded-md p-2">
-                            <UploadFile
-                              type="received-notice"
-                              noticeId={noticeId}
-                              onFileUpload={(url) => setReceivedNoticeFileUrl(url)}
-                            />
+                          <UploadFile type="received-notice" noticeId={noticeId} clientName={notice.client?.name || ""} noticeHeading={notice.heading || ""} sectionHeading={receivedNotice.heading} onFileUpload={(url) => setReceivedNoticeFileUrl(url)} />
                             {receivedNoticeFileUrl && (
                               <p className="text-xs text-green-600 mt-1">
                                 <FileIcon className="inline-block w-3 h-3 mr-1" />
@@ -542,7 +719,9 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                         </div>
                         <Button
                           onClick={handleSubmitReceivedNotice}
-                          disabled={!receivedNotice.heading || !receivedNotice.dueDate || isSubmittingReceivedNotice}
+                          disabled={
+                            !receivedNotice.heading || !receivedNotice.receivingDate || isSubmittingReceivedNotice
+                          }
                           className="w-full"
                         >
                           {isSubmittingReceivedNotice ? (

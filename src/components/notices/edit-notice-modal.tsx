@@ -19,29 +19,31 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 
-interface AddNoticeModalProps {
+interface EditNoticeModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   refreshNotices: () => void
+  noticeId: string
 }
 
-export default function AddNoticeModal({ open, onOpenChange, refreshNotices }: AddNoticeModalProps) {
+export default function EditNoticeModal({ open, onOpenChange, refreshNotices, noticeId }: EditNoticeModalProps) {
   const { toast } = useToast()
   const [clients, setClients] = useState<{ _id: string; name: string }[]>([])
   const [fileUrl, setFileUrl] = useState<string>("")
-  const [file, setFile] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState({
     client: "",
     heading: "",
     commissioner: "",
     taxAuthority: "",
     taxYear: "",
-    taxOffice: "", // Add this line
     receivingDate: "",
+    taxOffice: "",
     dueDate: "",
     hearingDate: "",
     status: "Pending",
+    fileUrl: "",
   })
 
   // For date picker state
@@ -60,6 +62,61 @@ export default function AddNoticeModal({ open, onOpenChange, refreshNotices }: A
     }
     fetchClients()
   }, [toast])
+
+  useEffect(() => {
+    const fetchNoticeDetails = async () => {
+      if (!noticeId || !open) return
+
+      try {
+        setLoading(true)
+        const { data } = await axiosInstance.get(`/notices/${noticeId}`)
+
+        // Parse dates for calendar picker
+        const parseDate = (dateString: string) => {
+          if (!dateString) return undefined
+          return new Date(dateString)
+        }
+
+        // Set date objects for calendar pickers
+        const receivingDateObj = parseDate(data.receivingDate)
+        const dueDateObj = parseDate(data.dueDate)
+        const hearingDateObj = parseDate(data.hearingDate)
+
+        setReceivingDate(receivingDateObj)
+        setDueDate(dueDateObj)
+        setHearingDate(hearingDateObj)
+
+        // Format dates for backend (YYYY-MM-DD)
+        const formatDateForBackend = (dateString: string) => {
+          if (!dateString) return ""
+          const date = new Date(dateString)
+          return format(date, "yyyy-MM-dd")
+        }
+
+        setFormData({
+          client: data.client?._id || "",
+          heading: data.heading || "",
+          commissioner: data.commissioner || "",
+          taxAuthority: data.taxAuthority || "",
+          taxYear: data.taxYear || "",
+          receivingDate: formatDateForBackend(data.receivingDate),
+          taxOffice: data.taxOffice || "",
+          dueDate: formatDateForBackend(data.dueDate),
+          hearingDate: formatDateForBackend(data.hearingDate),
+          status: data.status || "Pending",
+          fileUrl: data.fileUrl || "",
+        })
+
+        setFileUrl(data.fileUrl || "")
+      } catch (error) {
+        toast({ variant: "destructive", title: "Error", description: "Failed to fetch notice details." })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchNoticeDetails()
+  }, [noticeId, open, toast])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -81,19 +138,8 @@ export default function AddNoticeModal({ open, onOpenChange, refreshNotices }: A
     }
   }
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      setFile(event.target.files[0])
-    }
-  }
-
   const handleSubmit = async () => {
     try {
-      if (!fileUrl) {
-        toast({ variant: "destructive", title: "Error", description: "Please upload a file first." })
-        return
-      }
-
       if (!formData.client || !formData.heading || !formData.receivingDate) {
         toast({
           variant: "destructive",
@@ -104,23 +150,44 @@ export default function AddNoticeModal({ open, onOpenChange, refreshNotices }: A
       }
 
       setIsSubmitting(true)
-      await axiosInstance.post("/notices", { ...formData, fileUrl })
+      // Only update fileUrl if a new one was uploaded
+      const updateData = { ...formData }
+      if (fileUrl && fileUrl !== formData.fileUrl) {
+        updateData.fileUrl = fileUrl
+      }
 
-      toast({ title: "Success", description: "Notice added successfully" })
+      await axiosInstance.put(`/notices/${noticeId}`, updateData)
+
+      toast({ title: "Success", description: "Notice updated successfully" })
       refreshNotices()
       onOpenChange(false)
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to add notice." })
+      toast({ variant: "destructive", title: "Error", description: "Failed to update notice." })
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  if (loading) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold">Loading Notice Details...</DialogTitle>
+          </DialogHeader>
+          <div className="flex justify-center items-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        </DialogContent>
+      </Dialog>
+    )
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Add New Notice</DialogTitle>
+          <DialogTitle className="text-xl font-semibold">Edit Notice</DialogTitle>
         </DialogHeader>
 
         <ScrollArea className="max-h-[calc(90vh-10rem)]">
@@ -145,11 +212,15 @@ export default function AddNoticeModal({ open, onOpenChange, refreshNotices }: A
               </TabsList>
 
               <TabsContent value="details" className="space-y-4">
+                {/* Client & Tax Authority - Stack on mobile, side by side on larger screens */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Client Dropdown */}
                   <div className="grid gap-2">
                     <Label htmlFor="client">Client</Label>
-                    <Select onValueChange={(value) => setFormData({ ...formData, client: value })}>
+                    <Select
+                      value={formData.client}
+                      onValueChange={(value) => setFormData({ ...formData, client: value })}
+                    >
                       <SelectTrigger id="client" className="truncate">
                         <SelectValue placeholder="Select Client" />
                       </SelectTrigger>
@@ -166,7 +237,10 @@ export default function AddNoticeModal({ open, onOpenChange, refreshNotices }: A
                   {/* Tax Authority */}
                   <div className="grid gap-2">
                     <Label htmlFor="taxAuthority">Tax Authority</Label>
-                    <Select onValueChange={(value) => setFormData({ ...formData, taxAuthority: value })}>
+                    <Select
+                      value={formData.taxAuthority}
+                      onValueChange={(value) => setFormData({ ...formData, taxAuthority: value })}
+                    >
                       <SelectTrigger id="taxAuthority">
                         <SelectValue placeholder="Select Tax Authority" />
                       </SelectTrigger>
@@ -184,7 +258,10 @@ export default function AddNoticeModal({ open, onOpenChange, refreshNotices }: A
                   {/* Tax Office */}
                   <div className="grid gap-2">
                     <Label htmlFor="taxOffice">Tax Office</Label>
-                    <Select onValueChange={(value) => setFormData({ ...formData, taxOffice: value })}>
+                    <Select
+                      value={formData.taxOffice}
+                      onValueChange={(value) => setFormData({ ...formData, taxOffice: value })}
+                    >
                       <SelectTrigger id="taxOffice">
                         <SelectValue placeholder="Select Tax Office" />
                       </SelectTrigger>
@@ -204,9 +281,16 @@ export default function AddNoticeModal({ open, onOpenChange, refreshNotices }: A
                 {/* Heading */}
                 <div className="grid gap-2">
                   <Label htmlFor="heading">Notice Heading</Label>
-                  <Input id="heading" name="heading" placeholder="Enter Notice Heading" onChange={handleChange} />
+                  <Input
+                    id="heading"
+                    name="heading"
+                    value={formData.heading}
+                    placeholder="Enter Notice Heading"
+                    onChange={handleChange}
+                  />
                 </div>
 
+                {/* Commissioner & Tax Year - Stack on mobile, side by side on larger screens */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Commissioner */}
                   <div className="grid gap-2">
@@ -214,6 +298,7 @@ export default function AddNoticeModal({ open, onOpenChange, refreshNotices }: A
                     <Input
                       id="commissioner"
                       name="commissioner"
+                      value={formData.commissioner}
                       placeholder="Enter Commissioner Name"
                       onChange={handleChange}
                     />
@@ -222,7 +307,13 @@ export default function AddNoticeModal({ open, onOpenChange, refreshNotices }: A
                   {/* Tax Year */}
                   <div className="grid gap-2">
                     <Label htmlFor="taxYear">Tax Year</Label>
-                    <Input id="taxYear" name="taxYear" placeholder="e.g. 2024" onChange={handleChange} />
+                    <Input
+                      id="taxYear"
+                      name="taxYear"
+                      value={formData.taxYear}
+                      placeholder="e.g. 2024"
+                      onChange={handleChange}
+                    />
                   </div>
                 </div>
               </TabsContent>
@@ -230,6 +321,7 @@ export default function AddNoticeModal({ open, onOpenChange, refreshNotices }: A
               <TabsContent value="dates" className="space-y-4">
                 <Card>
                   <CardContent className="pt-6">
+                    {/* Stack all date fields on mobile, 3 columns on larger screens */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {/* Receiving Date */}
                       <div className="grid gap-2">
@@ -373,8 +465,20 @@ export default function AddNoticeModal({ open, onOpenChange, refreshNotices }: A
                 <Card>
                   <CardContent className="pt-6">
                     <Label className="text-base font-medium mb-4 block">Attach Notice Document</Label>
-                    <UploadFile type="notice" noticeId={formData.client} clientName={clients.find((c) => c._id === formData.client)?.name || ""} noticeHeading={formData.heading} onFileUpload={(url) => setFileUrl(url)} />
-                    {fileUrl && <p className="text-xs text-green-600 mt-2">File uploaded successfully</p>}
+                    {fileUrl && (
+                      <div className="mb-4 p-2 bg-muted rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <span className="text-sm truncate max-w-full">Current document attached</span>
+                        <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
+                          <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+                            View
+                          </a>
+                        </Button>
+                      </div>
+                    )}
+                   <UploadFile type="notice" noticeId={noticeId} clientName={clients.find((c) => c._id === formData.client)?.name || ""} noticeHeading={formData.heading} onFileUpload={(url) => setFileUrl(url)} />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Upload a new file only if you want to replace the existing one.
+                    </p>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -390,10 +494,10 @@ export default function AddNoticeModal({ open, onOpenChange, refreshNotices }: A
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting...
+                Updating...
               </>
             ) : (
-              "Submit Notice"
+              "Update Notice"
             )}
           </Button>
         </DialogFooter>

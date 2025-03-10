@@ -495,7 +495,12 @@ export default function ClientManagement() {
       </div>
 
       <div className="rounded-lg border bg-card p-6">
-        <NoticeList clientId={selectedClientId!} onSelectNotice={handleSelectNotice} className="w-full" />
+        <NoticeList
+          clientId={selectedClientId!}
+          onSelectNotice={handleSelectNotice}
+          className="w-full"
+          selectedClientName={selectedClientName}
+        />
       </div>
     </div>
   )
