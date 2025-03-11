@@ -63,6 +63,25 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
   const [isSubmittingReceivedNotice, setIsSubmittingReceivedNotice] = useState(false)
 
   useEffect(() => {
+    // Fix for Safari and mobile devices
+    const handleTouchStart = (e: TouchEvent) => {
+      // Prevent default behavior for calendar buttons
+      const target = e.target as HTMLElement
+      if (target.closest('[role="button"]') && target.closest('[id$="-date"]')) {
+        e.preventDefault()
+      }
+    }
+
+    // Add event listener
+    document.addEventListener("touchstart", handleTouchStart, { passive: false })
+
+    // Clean up
+    return () => {
+      document.removeEventListener("touchstart", handleTouchStart)
+    }
+  }, [])
+
+  useEffect(() => {
     const fetchNoticeDetails = async () => {
       try {
         const { data } = await axiosInstance.get(`/notices/${noticeId}`)
@@ -428,7 +447,14 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                         <div className="grid gap-2">
                           <Label>Upload Reply Document</Label>
                           <div className="border rounded-md p-2">
-                          <UploadFile type="reply" noticeId={noticeId} clientName={notice.client?.name || ""} noticeHeading={notice.heading || ""} sectionHeading={reply.heading} onFileUpload={(url) => setReplyFileUrl(url)} />
+                            <UploadFile
+                              type="reply"
+                              noticeId={noticeId}
+                              clientName={notice.client?.name || ""}
+                              noticeHeading={notice.heading || ""}
+                              sectionHeading={reply.heading}
+                              onFileUpload={(url) => setReplyFileUrl(url)}
+                            />
                             {replyFileUrl && (
                               <p className="text-xs text-green-600 mt-1">
                                 <FileIcon className="inline-block w-3 h-3 mr-1" />
@@ -558,7 +584,14 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                         <div className="grid gap-2">
                           <Label>Upload Order Document</Label>
                           <div className="border rounded-md p-2">
-                          <UploadFile type="order" noticeId={noticeId} clientName={notice.client?.name || ""} noticeHeading={notice.heading || ""} sectionHeading={order.heading} onFileUpload={(url) => setOrderFileUrl(url)} />
+                            <UploadFile
+                              type="order"
+                              noticeId={noticeId}
+                              clientName={notice.client?.name || ""}
+                              noticeHeading={notice.heading || ""}
+                              sectionHeading={order.heading}
+                              onFileUpload={(url) => setOrderFileUrl(url)}
+                            />
                             {orderFileUrl && (
                               <p className="text-xs text-green-600 mt-1">
                                 <FileIcon className="inline-block w-3 h-3 mr-1" />
@@ -708,7 +741,14 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                         <div className="grid gap-2">
                           <Label>Upload Document</Label>
                           <div className="border rounded-md p-2">
-                          <UploadFile type="received-notice" noticeId={noticeId} clientName={notice.client?.name || ""} noticeHeading={notice.heading || ""} sectionHeading={receivedNotice.heading} onFileUpload={(url) => setReceivedNoticeFileUrl(url)} />
+                            <UploadFile
+                              type="received-notice"
+                              noticeId={noticeId}
+                              clientName={notice.client?.name || ""}
+                              noticeHeading={notice.heading || ""}
+                              sectionHeading={receivedNotice.heading}
+                              onFileUpload={(url) => setReceivedNoticeFileUrl(url)}
+                            />
                             {receivedNoticeFileUrl && (
                               <p className="text-xs text-green-600 mt-1">
                                 <FileIcon className="inline-block w-3 h-3 mr-1" />

@@ -21,25 +21,32 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params?: { id?: string } }) {
   try {
+    const params = await context.params; // Ensure params is awaited
+
+    if (!params?.id) {
+      return new Response(JSON.stringify({ error: "Missing ID parameter" }), { status: 400 });
+    }
+
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/data/${params.id}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${request.cookies.get("token")?.value || ""}`,
-        "Content-Type": "application/json",
       },
-    })
+    });
 
-    if (!response.ok) {
-      throw new Error("Failed to delete data")
-    }
+    if (!response.ok) throw new Error("Failed to delete data");
 
-    const data = await response.json()
-    return NextResponse.json(data)
+    return new Response(JSON.stringify({ message: "Deleted successfully" }), { status: 200 });
   } catch (error) {
-    console.error("Error deleting data:", error)
-    return NextResponse.json({ error: "Failed to delete data" }, { status: 500 })
+    if (error instanceof Error) {
+      return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    }
+    return new Response(JSON.stringify({ error: "An unknown error occurred" }), { status: 500 });
   }
 }
+
+
+
 

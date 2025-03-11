@@ -1,6 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import type React from "react"
+
+import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -44,13 +46,15 @@ export default function DataPage() {
   const [loading, setLoading] = useState(true)
   const [breadcrumbs, setBreadcrumbs] = useState<{ id: string | null; name: string }[]>([])
   const [newFolderName, setNewFolderName] = useState("")
-  const [fileToUpload, setFileToUpload] = useState<File | null>(null)
+  const [filesToUpload, setFilesToUpload] = useState<File[]>([])
   const [isCreatingFolder, setIsCreatingFolder] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [folderDialogOpen, setFolderDialogOpen] = useState(false)
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const dragCounter = useRef(0)
 
   // Fetch data for current folder
   useEffect(() => {
@@ -159,11 +163,15 @@ export default function DataPage() {
 
   // Upload file
   const handleFileUpload = async () => {
-    if (!fileToUpload) return
+    if (filesToUpload.length === 0) return
 
     setIsUploading(true)
     const formData = new FormData()
-    formData.append("file", fileToUpload)
+
+    filesToUpload.forEach((file) => {
+      formData.append("files", file)
+    })
+
     formData.append("parentId", folderId || "")
 
     try {
@@ -172,21 +180,21 @@ export default function DataPage() {
         body: formData,
       })
 
-      if (!response.ok) throw new Error("Failed to upload file")
+      if (!response.ok) throw new Error("Failed to upload files")
 
-      const newFile = await response.json()
-      setData([...data, newFile])
-      setFileToUpload(null)
+      const uploadedFiles = await response.json()
+      setData([...data, ...uploadedFiles])
+      setFilesToUpload([]) // Clear selected files
       setUploadDialogOpen(false)
       toast({
         title: "Success",
-        description: "File uploaded successfully",
+        description: "Files uploaded successfully",
       })
     } catch (error) {
-      console.error("Error uploading file:", error)
+      console.error("Error uploading files:", error)
       toast({
         title: "Error",
-        description: "Failed to upload file",
+        description: "Failed to upload files",
         variant: "destructive",
       })
     } finally {
@@ -254,6 +262,43 @@ export default function DataPage() {
     setRefreshTrigger((prev) => prev + 1)
   }
 
+  // Drag and drop handlers
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounter.current++
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true)
+    }
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounter.current--
+    if (dragCounter.current === 0) {
+      setIsDragging(false)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+    dragCounter.current = 0
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      setFilesToUpload(Array.from(e.dataTransfer.files))
+      setUploadDialogOpen(true)
+      e.dataTransfer.clearData()
+    }
+  }
+
   // Filter data based on search query
   const filteredData = data.filter((item) => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
 
@@ -262,7 +307,26 @@ export default function DataPage() {
   const files = filteredData.filter((item) => item.type === "file")
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
+    <div
+      className="container mx-auto p-4 space-y-6 relative"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Drag overlay */}
+      {isDragging && (
+        <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center rounded-lg border-2 border-dashed border-primary">
+          <div className="bg-background p-6 rounded-xl shadow-lg text-center">
+            <Upload className="h-12 w-12 mx-auto mb-4 text-primary" />
+            <h3 className="text-xl font-medium mb-2">Drop files to upload</h3>
+            <p className="text-muted-foreground">
+              Files will be uploaded to {breadcrumbs[breadcrumbs.length - 1]?.name || "Home"}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Breadcrumb Navigation */}
       <Card className="border shadow-sm bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/10 dark:to-purple-950/10">
         <CardContent className="p-4">
@@ -337,16 +401,51 @@ export default function DataPage() {
                     <DialogTitle>Upload File</DialogTitle>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
-                    <Input type="file" onChange={(e) => setFileToUpload(e.target.files?.[0] || null)} />
-                    {fileToUpload && <p className="text-sm text-muted-foreground">Selected: {fileToUpload.name}</p>}
-                    <Button onClick={handleFileUpload} disabled={isUploading || !fileToUpload} className="w-full">
+                    <div
+                      className="border-2 border-dashed rounded-lg p-6 text-center hover:bg-muted/50 transition-colors cursor-pointer"
+                      onDragEnter={handleDragEnter}
+                      onDragLeave={handleDragLeave}
+                      onDragOver={handleDragOver}
+                      onDrop={handleDrop}
+                      onClick={() => document.getElementById("file-upload")?.click()}
+                    >
+                      <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm font-medium mb-1">Drag & drop files here</p>
+                      <p className="text-xs text-muted-foreground mb-2">or click to browse</p>
+                      <Input
+                        id="file-upload"
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => setFilesToUpload(Array.from(e.target.files || []))}
+                      />
+                    </div>
+                    {filesToUpload.length > 0 && (
+                      <div className="max-h-40 overflow-y-auto border rounded-md p-2">
+                        <p className="text-sm font-medium mb-2">Selected files:</p>
+                        {filesToUpload.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between text-sm py-1">
+                            <div className="flex items-center gap-2 truncate">
+                              <File className="h-4 w-4 text-muted-foreground" />
+                              <span className="truncate">{file.name}</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <Button
+                      onClick={handleFileUpload}
+                      disabled={isUploading || filesToUpload.length === 0}
+                      className="w-full"
+                    >
                       {isUploading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Uploading...
                         </>
                       ) : (
-                        "Upload File"
+                        "Upload Files"
                       )}
                     </Button>
                   </div>
@@ -400,7 +499,13 @@ export default function DataPage() {
               </div>
             </div>
           ) : filteredData.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center bg-muted/20 rounded-lg border border-dashed border-muted">
+            <div
+              className="flex flex-col items-center justify-center py-12 text-center bg-muted/20 rounded-lg border border-dashed border-muted"
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+            >
               <File className="h-10 w-10 text-muted-foreground mb-3" />
               <h3 className="text-base font-medium mb-1">No items found</h3>
               <p className="text-sm text-muted-foreground mb-4">
