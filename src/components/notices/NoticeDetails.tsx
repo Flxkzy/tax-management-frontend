@@ -63,45 +63,6 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
   const [isSubmittingReceivedNotice, setIsSubmittingReceivedNotice] = useState(false)
 
   useEffect(() => {
-    // Fix for Safari and mobile devices
-    const handleTouchStart = (e: TouchEvent) => {
-      const target = e.target as HTMLElement
-
-      // Force focus on calendar buttons when touched
-      if (target.closest('[role="button"]') && (target.closest('[role="dialog"]') || target.closest('[role="grid"]'))) {
-        // Prevent default only for calendar elements
-        e.preventDefault()
-
-        // Force focus on the element
-        ;(target as HTMLElement).focus()
-
-        // Simulate a click
-        target.click()
-      }
-    }
-
-    // Add global click handler for iOS Safari
-    const handleGlobalClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-
-      // Handle calendar button clicks
-      if (target.closest('[role="button"]') && (target.closest('[role="dialog"]') || target.closest('[role="grid"]'))) {
-        e.stopPropagation()
-      }
-    }
-
-    // Add event listeners
-    document.addEventListener("touchstart", handleTouchStart, { passive: false })
-    document.addEventListener("click", handleGlobalClick, { capture: true })
-
-    // Clean up
-    return () => {
-      document.removeEventListener("touchstart", handleTouchStart)
-      document.removeEventListener("click", handleGlobalClick, { capture: true })
-    }
-  }, [])
-
-  useEffect(() => {
     const fetchNoticeDetails = async () => {
       try {
         const { data } = await axiosInstance.get(`/notices/${noticeId}`)
@@ -449,59 +410,25 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                                   "w-full justify-start text-left font-normal",
                                   !replyDate && "text-muted-foreground",
                                 )}
-                                onClick={(e) => {
-                                  // Prevent default behavior to help with iOS Safari
-                                  e.preventDefault()
-                                  // Force focus on the button
-                                  e.currentTarget.focus()
-                                }}
-                                onTouchStart={(e) => {
-                                  // Prevent default for touch events
-                                  e.preventDefault()
-                                  // Force focus
-                                  e.currentTarget.focus()
-                                }}
                               >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                 {replyDate ? format(replyDate, "dd/MM/yyyy") : <span>Select date</span>}
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent
-                              className="w-auto p-0"
-                              align="start"
-                              sideOffset={8}
-                              side="bottom"
-                              avoidCollisions={false}
-                              onInteractOutside={(e) => {
-                                // Prevent closing when interacting with date elements
-                                if ((e.target as HTMLElement).closest('[role="dialog"]')) {
-                                  e.preventDefault()
-                                }
-                              }}
-                            >
-                              <div className="z-50 bg-background border rounded-md shadow-md">
-                                <Calendar
-                                  mode="single"
-                                  selected={replyDate}
-                                  onSelect={(date) => handleDateChange(date, "replyDate", setReplyDate)}
-                                  initialFocus
-                                  disabled={(date) => date < new Date("1900-01-01")}
-                                />
-                              </div>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={replyDate}
+                                onSelect={(date) => handleDateChange(date, "replyDate", setReplyDate)}
+                                initialFocus
+                              />
                             </PopoverContent>
                           </Popover>
                         </div>
                         <div className="grid gap-2">
                           <Label>Upload Reply Document</Label>
                           <div className="border rounded-md p-2">
-                            <UploadFile
-                              type="reply"
-                              noticeId={noticeId}
-                              clientName={notice.client?.name || ""}
-                              noticeHeading={notice.heading || ""}
-                              sectionHeading={reply.heading}
-                              onFileUpload={(url) => setReplyFileUrl(url)}
-                            />
+                          <UploadFile type="reply" noticeId={noticeId} clientName={notice.client?.name || ""} noticeHeading={notice.heading || ""} sectionHeading={reply.heading} onFileUpload={(url) => setReplyFileUrl(url)} />
                             {replyFileUrl && (
                               <p className="text-xs text-green-600 mt-1">
                                 <FileIcon className="inline-block w-3 h-3 mr-1" />
@@ -598,18 +525,6 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                                     "w-full justify-start text-left font-normal",
                                     !orderReceivingDate && "text-muted-foreground",
                                   )}
-                                  onClick={(e) => {
-                                    // Prevent default behavior to help with iOS Safari
-                                    e.preventDefault()
-                                    // Force focus on the button
-                                    e.currentTarget.focus()
-                                  }}
-                                  onTouchStart={(e) => {
-                                    // Prevent default for touch events
-                                    e.preventDefault()
-                                    // Force focus
-                                    e.currentTarget.focus()
-                                  }}
                                 >
                                   <CalendarIcon className="mr-2 h-4 w-4" />
                                   {orderReceivingDate ? (
@@ -619,30 +534,15 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                                   )}
                                 </Button>
                               </PopoverTrigger>
-                              <PopoverContent
-                                className="w-auto p-0"
-                                align="start"
-                                sideOffset={8}
-                                side="bottom"
-                                avoidCollisions={false}
-                                onInteractOutside={(e) => {
-                                  // Prevent closing when interacting with date elements
-                                  if ((e.target as HTMLElement).closest('[role="dialog"]')) {
-                                    e.preventDefault()
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={orderReceivingDate}
+                                  onSelect={(date) =>
+                                    handleDateChange(date, "orderReceivingDate", setOrderReceivingDate)
                                   }
-                                }}
-                              >
-                                <div className="z-50 bg-background border rounded-md shadow-md">
-                                  <Calendar
-                                    mode="single"
-                                    selected={orderReceivingDate}
-                                    onSelect={(date) =>
-                                      handleDateChange(date, "orderReceivingDate", setOrderReceivingDate)
-                                    }
-                                    initialFocus
-                                    disabled={(date) => date < new Date("1900-01-01")}
-                                  />
-                                </div>
+                                  initialFocus
+                                />
                               </PopoverContent>
                             </Popover>
                           </div>
@@ -658,14 +558,7 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                         <div className="grid gap-2">
                           <Label>Upload Order Document</Label>
                           <div className="border rounded-md p-2">
-                            <UploadFile
-                              type="order"
-                              noticeId={noticeId}
-                              clientName={notice.client?.name || ""}
-                              noticeHeading={notice.heading || ""}
-                              sectionHeading={order.heading}
-                              onFileUpload={(url) => setOrderFileUrl(url)}
-                            />
+                          <UploadFile type="order" noticeId={noticeId} clientName={notice.client?.name || ""} noticeHeading={notice.heading || ""} sectionHeading={order.heading} onFileUpload={(url) => setOrderFileUrl(url)} />
                             {orderFileUrl && (
                               <p className="text-xs text-green-600 mt-1">
                                 <FileIcon className="inline-block w-3 h-3 mr-1" />
@@ -757,18 +650,6 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                                     "w-full justify-start text-left font-normal",
                                     !receivedNoticeReceivingDate && "text-muted-foreground",
                                   )}
-                                  onClick={(e) => {
-                                    // Prevent default behavior to help with iOS Safari
-                                    e.preventDefault()
-                                    // Force focus on the button
-                                    e.currentTarget.focus()
-                                  }}
-                                  onTouchStart={(e) => {
-                                    // Prevent default for touch events
-                                    e.preventDefault()
-                                    // Force focus
-                                    e.currentTarget.focus()
-                                  }}
                                 >
                                   <CalendarIcon className="mr-2 h-4 w-4" />
                                   {receivedNoticeReceivingDate ? (
@@ -778,30 +659,15 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                                   )}
                                 </Button>
                               </PopoverTrigger>
-                              <PopoverContent
-                                className="w-auto p-0"
-                                align="start"
-                                sideOffset={8}
-                                side="bottom"
-                                avoidCollisions={false}
-                                onInteractOutside={(e) => {
-                                  // Prevent closing when interacting with date elements
-                                  if ((e.target as HTMLElement).closest('[role="dialog"]')) {
-                                    e.preventDefault()
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={receivedNoticeReceivingDate}
+                                  onSelect={(date) =>
+                                    handleDateChange(date, "noticeReceivingDate", setReceivedNoticeReceivingDate)
                                   }
-                                }}
-                              >
-                                <div className="z-50 bg-background border rounded-md shadow-md">
-                                  <Calendar
-                                    mode="single"
-                                    selected={receivedNoticeReceivingDate}
-                                    onSelect={(date) =>
-                                      handleDateChange(date, "noticeReceivingDate", setReceivedNoticeReceivingDate)
-                                    }
-                                    initialFocus
-                                    disabled={(date) => date < new Date("1900-01-01")}
-                                  />
-                                </div>
+                                  initialFocus
+                                />
                               </PopoverContent>
                             </Popover>
                           </div>
@@ -819,18 +685,6 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                                     "w-full justify-start text-left font-normal",
                                     !receivedNoticeDueDate && "text-muted-foreground",
                                   )}
-                                  onClick={(e) => {
-                                    // Prevent default behavior to help with iOS Safari
-                                    e.preventDefault()
-                                    // Force focus on the button
-                                    e.currentTarget.focus()
-                                  }}
-                                  onTouchStart={(e) => {
-                                    // Prevent default for touch events
-                                    e.preventDefault()
-                                    // Force focus
-                                    e.currentTarget.focus()
-                                  }}
                                 >
                                   <CalendarIcon className="mr-2 h-4 w-4" />
                                   {receivedNoticeDueDate ? (
@@ -840,30 +694,13 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                                   )}
                                 </Button>
                               </PopoverTrigger>
-                              <PopoverContent
-                                className="w-auto p-0"
-                                align="start"
-                                sideOffset={8}
-                                side="bottom"
-                                avoidCollisions={false}
-                                onInteractOutside={(e) => {
-                                  // Prevent closing when interacting with date elements
-                                  if ((e.target as HTMLElement).closest('[role="dialog"]')) {
-                                    e.preventDefault()
-                                  }
-                                }}
-                              >
-                                <div className="z-50 bg-background border rounded-md shadow-md">
-                                  <Calendar
-                                    mode="single"
-                                    selected={receivedNoticeDueDate}
-                                    onSelect={(date) =>
-                                      handleDateChange(date, "noticeDueDate", setReceivedNoticeDueDate)
-                                    }
-                                    initialFocus
-                                    disabled={(date) => date < new Date("1900-01-01")}
-                                  />
-                                </div>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={receivedNoticeDueDate}
+                                  onSelect={(date) => handleDateChange(date, "noticeDueDate", setReceivedNoticeDueDate)}
+                                  initialFocus
+                                />
                               </PopoverContent>
                             </Popover>
                           </div>
@@ -871,14 +708,7 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                         <div className="grid gap-2">
                           <Label>Upload Document</Label>
                           <div className="border rounded-md p-2">
-                            <UploadFile
-                              type="received-notice"
-                              noticeId={noticeId}
-                              clientName={notice.client?.name || ""}
-                              noticeHeading={notice.heading || ""}
-                              sectionHeading={receivedNotice.heading}
-                              onFileUpload={(url) => setReceivedNoticeFileUrl(url)}
-                            />
+                          <UploadFile type="received-notice" noticeId={noticeId} clientName={notice.client?.name || ""} noticeHeading={notice.heading || ""} sectionHeading={receivedNotice.heading} onFileUpload={(url) => setReceivedNoticeFileUrl(url)} />
                             {receivedNoticeFileUrl && (
                               <p className="text-xs text-green-600 mt-1">
                                 <FileIcon className="inline-block w-3 h-3 mr-1" />

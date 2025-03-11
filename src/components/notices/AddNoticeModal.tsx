@@ -61,48 +61,6 @@ export default function AddNoticeModal({ open, onOpenChange, refreshNotices }: A
     fetchClients()
   }, [toast])
 
-  // Add a useEffect to handle mobile-specific setup for the date pickers
-  // Add this near the top of the component, after the other useEffect hooks
-
-  useEffect(() => {
-    // Fix for Safari and mobile devices
-    const handleTouchStart = (e: TouchEvent) => {
-      const target = e.target as HTMLElement
-
-      // Force focus on calendar buttons when touched
-      if (target.closest('[role="button"]') && (target.closest('[role="dialog"]') || target.closest('[role="grid"]'))) {
-        // Prevent default only for calendar elements
-        e.preventDefault()
-
-        // Force focus on the element
-        ;(target as HTMLElement).focus()
-
-        // Simulate a click
-        target.click()
-      }
-    }
-
-    // Add global click handler for iOS Safari
-    const handleGlobalClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-
-      // Handle calendar button clicks
-      if (target.closest('[role="button"]') && (target.closest('[role="dialog"]') || target.closest('[role="grid"]'))) {
-        e.stopPropagation()
-      }
-    }
-
-    // Add event listeners
-    document.addEventListener("touchstart", handleTouchStart, { passive: false })
-    document.addEventListener("click", handleGlobalClick, { capture: true })
-
-    // Clean up
-    return () => {
-      document.removeEventListener("touchstart", handleTouchStart)
-      document.removeEventListener("click", handleGlobalClick, { capture: true })
-    }
-  }, [])
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
@@ -288,45 +246,18 @@ export default function AddNoticeModal({ open, onOpenChange, refreshNotices }: A
                                   !receivingDate && "text-muted-foreground",
                                   receivingDate && "pr-8", // Add padding for the clear button
                                 )}
-                                onClick={(e) => {
-                                  // Prevent default behavior to help with iOS Safari
-                                  e.preventDefault()
-                                  // Force focus on the button
-                                  e.currentTarget.focus()
-                                }}
-                                onTouchStart={(e) => {
-                                  // Prevent default for touch events
-                                  e.preventDefault()
-                                  // Force focus
-                                  e.currentTarget.focus()
-                                }}
                               >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                 {receivingDate ? format(receivingDate, "dd/MM/yyyy") : <span>Select date</span>}
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent
-                              className="w-auto p-0"
-                              align="start"
-                              sideOffset={8}
-                              side="bottom"
-                              avoidCollisions={false}
-                              onInteractOutside={(e) => {
-                                // Prevent closing when interacting with date elements
-                                if ((e.target as HTMLElement).closest('[role="dialog"]')) {
-                                  e.preventDefault()
-                                }
-                              }}
-                            >
-                              <div className="z-50 bg-background border rounded-md shadow-md">
-                                <Calendar
-                                  mode="single"
-                                  selected={receivingDate}
-                                  onSelect={(date) => handleDateChange(date, "receivingDate")}
-                                  initialFocus
-                                  disabled={(date) => date < new Date("1900-01-01")}
-                                />
-                              </div>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={receivingDate}
+                                onSelect={(date) => handleDateChange(date, "receivingDate")}
+                                initialFocus
+                              />
                             </PopoverContent>
                           </Popover>
                           {receivingDate && (
@@ -360,45 +291,18 @@ export default function AddNoticeModal({ open, onOpenChange, refreshNotices }: A
                                   !dueDate && "text-muted-foreground",
                                   dueDate && "pr-8", // Add padding for the clear button
                                 )}
-                                onClick={(e) => {
-                                  // Prevent default behavior to help with iOS Safari
-                                  e.preventDefault()
-                                  // Force focus on the button
-                                  e.currentTarget.focus()
-                                }}
-                                onTouchStart={(e) => {
-                                  // Prevent default for touch events
-                                  e.preventDefault()
-                                  // Force focus
-                                  e.currentTarget.focus()
-                                }}
                               >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                 {dueDate ? format(dueDate, "dd/MM/yyyy") : <span>Select date</span>}
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent
-                              className="w-auto p-0"
-                              align="start"
-                              sideOffset={8}
-                              side="bottom"
-                              avoidCollisions={false}
-                              onInteractOutside={(e) => {
-                                // Prevent closing when interacting with date elements
-                                if ((e.target as HTMLElement).closest('[role="dialog"]')) {
-                                  e.preventDefault()
-                                }
-                              }}
-                            >
-                              <div className="z-50 bg-background border rounded-md shadow-md">
-                                <Calendar
-                                  mode="single"
-                                  selected={dueDate}
-                                  onSelect={(date) => handleDateChange(date, "dueDate")}
-                                  initialFocus
-                                  disabled={(date) => date < new Date("1900-01-01")}
-                                />
-                              </div>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={dueDate}
+                                onSelect={(date) => handleDateChange(date, "dueDate")}
+                                initialFocus
+                              />
                             </PopoverContent>
                           </Popover>
                           {dueDate && (
@@ -432,45 +336,18 @@ export default function AddNoticeModal({ open, onOpenChange, refreshNotices }: A
                                   !hearingDate && "text-muted-foreground",
                                   hearingDate && "pr-8", // Add padding for the clear button
                                 )}
-                                onClick={(e) => {
-                                  // Prevent default behavior to help with iOS Safari
-                                  e.preventDefault()
-                                  // Force focus on the button
-                                  e.currentTarget.focus()
-                                }}
-                                onTouchStart={(e) => {
-                                  // Prevent default for touch events
-                                  e.preventDefault()
-                                  // Force focus
-                                  e.currentTarget.focus()
-                                }}
                               >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                 {hearingDate ? format(hearingDate, "dd/MM/yyyy") : <span>Select date</span>}
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent
-                              className="w-auto p-0"
-                              align="start"
-                              sideOffset={8}
-                              side="bottom"
-                              avoidCollisions={false}
-                              onInteractOutside={(e) => {
-                                // Prevent closing when interacting with date elements
-                                if ((e.target as HTMLElement).closest('[role="dialog"]')) {
-                                  e.preventDefault()
-                                }
-                              }}
-                            >
-                              <div className="z-50 bg-background border rounded-md shadow-md">
-                                <Calendar
-                                  mode="single"
-                                  selected={hearingDate}
-                                  onSelect={(date) => handleDateChange(date, "hearingDate")}
-                                  initialFocus
-                                  disabled={(date) => date < new Date("1900-01-01")}
-                                />
-                              </div>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={hearingDate}
+                                onSelect={(date) => handleDateChange(date, "hearingDate")}
+                                initialFocus
+                              />
                             </PopoverContent>
                           </Popover>
                           {hearingDate && (
@@ -496,13 +373,7 @@ export default function AddNoticeModal({ open, onOpenChange, refreshNotices }: A
                 <Card>
                   <CardContent className="pt-6">
                     <Label className="text-base font-medium mb-4 block">Attach Notice Document</Label>
-                    <UploadFile
-                      type="notice"
-                      noticeId={formData.client}
-                      clientName={clients.find((c) => c._id === formData.client)?.name || ""}
-                      noticeHeading={formData.heading}
-                      onFileUpload={(url) => setFileUrl(url)}
-                    />
+                    <UploadFile type="notice" noticeId={formData.client} clientName={clients.find((c) => c._id === formData.client)?.name || ""} noticeHeading={formData.heading} onFileUpload={(url) => setFileUrl(url)} />
                     {fileUrl && <p className="text-xs text-green-600 mt-2">File uploaded successfully</p>}
                   </CardContent>
                 </Card>
