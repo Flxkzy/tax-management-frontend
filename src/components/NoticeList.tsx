@@ -47,6 +47,7 @@ interface NoticeListProps {
   onSelectNotice?: (noticeId: string) => void
   selectedClient?: string
   selectedTaxYear?: string
+  selectedTaxOffice?: string
 }
 
 export default function NoticeList({
@@ -56,6 +57,8 @@ export default function NoticeList({
   onSelectNotice,
   selectedClient,
   selectedTaxYear,
+  selectedTaxOffice,
+
 }: NoticeListProps) {
   const { toast } = useToast()
   const [notices, setNotices] = useState<Notice[]>([])
@@ -86,6 +89,10 @@ export default function NoticeList({
 
         if (selectedClient && selectedClient !== "all") {
           filters.push(`client=${encodeURIComponent(selectedClient)}`)
+        }
+
+        if (selectedTaxOffice && selectedTaxOffice !== "all") {
+          filters.push(`taxOffice=${encodeURIComponent(selectedTaxOffice)}`);
         }
 
         if (filters.length > 0) {

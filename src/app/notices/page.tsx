@@ -38,11 +38,12 @@ export default function NoticesPage() {
   const [loading, setLoading] = useState(true)
   const [selectedClient, setSelectedClient] = useState<string>("")
   const [selectedTaxYear, setSelectedTaxYear] = useState<string>("")
+  const [selectedTaxOffice, setSelectedTaxOffice] = useState<string>("")
 
   useEffect(() => {
     fetchClients()
     fetchNotices()
-  }, [selectedClient, selectedTaxYear])
+  }, [selectedClient, selectedTaxYear, selectedTaxOffice])
 
   const fetchNotices = async () => {
     try {
@@ -56,6 +57,10 @@ export default function NoticesPage() {
 
       if (selectedTaxYear && selectedTaxYear !== "all" && selectedTaxYear.trim() !== "") {
         filters.push(`taxYear=${encodeURIComponent(selectedTaxYear)}`)
+      }
+
+      if (selectedTaxOffice && selectedTaxOffice !== "all" && selectedTaxOffice.trim() !== "") {
+        filters.push(`taxOffice=${encodeURIComponent(selectedTaxOffice)}`)
       }
 
       if (filters.length > 0) {
@@ -112,7 +117,7 @@ export default function NoticesPage() {
               <Filter className="h-5 w-5 text-muted-foreground" />
               <h3 className="font-medium">Filter Notices</h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <label htmlFor="client-filter" className="text-sm font-medium">
                   Client
@@ -158,6 +163,29 @@ export default function NoticesPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <label htmlFor="tax-office-filter" className="text-sm font-medium">
+                  Tax Office
+                </label>
+                <Select
+                  value={selectedTaxOffice || "all"}
+                  onValueChange={(value) => setSelectedTaxOffice(value === "all" ? "" : value)}
+                >
+                  <SelectTrigger id="tax-office-filter" className="w-full">
+                    <SelectValue placeholder="All Tax Offices" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Tax Offices</SelectItem>
+                    <SelectItem value="LTO">LTO</SelectItem>
+                    <SelectItem value="RTO">RTO</SelectItem>
+                    <SelectItem value="CTO">CTO</SelectItem>
+                    <SelectItem value="CIR(A)">CIR(A)</SelectItem>
+                    <SelectItem value="ATIR">ATIR</SelectItem>
+                    <SelectItem value="HIGH COURT">HIGH COURT</SelectItem>
+                    <SelectItem value="SUPREME COURT">SUPREME COURT</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </Card>
@@ -195,7 +223,7 @@ export default function NoticesPage() {
               </div>
               <h3 className="text-xl font-medium mb-2">No Notices Found</h3>
               <p className="text-muted-foreground mb-6 max-w-md">
-                {selectedClient || selectedTaxYear
+                {selectedClient || selectedTaxYear || selectedTaxOffice
                   ? "No notices match your current filters. Try adjusting your selection."
                   : "There are no notices in the system yet. Add your first notice to get started."}
               </p>
@@ -211,6 +239,7 @@ export default function NoticesPage() {
               onSelectNotice={setSelectedNoticeId}
               selectedClient={selectedClient}
               selectedTaxYear={selectedTaxYear}
+              selectedTaxOffice={selectedTaxOffice}
             />
           </div>
         )}

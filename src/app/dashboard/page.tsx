@@ -9,6 +9,7 @@ import NoticeDetails from "@/components/notices/NoticeDetails"
 import { Progress } from "@/components/ui/progress"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge"
+import CalendarComponent from "@/components/CalendarComponent";
 import {
   Users,
   FileText,
@@ -301,6 +302,8 @@ export default function Dashboard() {
           </>
         )}
       </div>
+
+      <CalendarComponent />
 
       {/* Main Content */}
       <div className="grid gap-6 md:grid-cols-2">
