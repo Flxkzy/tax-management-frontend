@@ -373,7 +373,13 @@ export default function AddNoticeModal({ open, onOpenChange, refreshNotices }: A
                 <Card>
                   <CardContent className="pt-6">
                     <Label className="text-base font-medium mb-4 block">Attach Notice Document</Label>
-                    <UploadFile type="notice" noticeId={formData.client} clientName={clients.find((c) => c._id === formData.client)?.name || ""} noticeHeading={formData.heading} onFileUpload={(url) => setFileUrl(url)} />
+                    <UploadFile
+                      type="notice"
+                      noticeId={formData.client}
+                      clientName={clients.find((c) => c._id === formData.client)?.name || ""}
+                      noticeHeading={formData.heading}
+                      onFileUpload={(url) => setFileUrl(url)}
+                    />
                     {fileUrl && <p className="text-xs text-green-600 mt-2">File uploaded successfully</p>}
                   </CardContent>
                 </Card>

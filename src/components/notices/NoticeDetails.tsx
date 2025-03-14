@@ -242,7 +242,7 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh]">
+      <DialogContent className="max-w-3xl max-h-[90vh] w-[95vw] p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">{notice?.heading || "Notice Details"}</DialogTitle>
           <DialogDescription className="text-muted-foreground">
@@ -336,25 +336,33 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
             </Card>
 
             <Tabs defaultValue="replies" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="replies" className="flex items-center gap-2">
-                  <FileTextIcon className="h-4 w-4" />
-                  Replies ({notice.replies.length})
+              <TabsList className="w-full grid grid-cols-3 overflow-x-auto text-xs sm:text-sm">
+                <TabsTrigger
+                  value="replies"
+                  className="flex items-center gap-1 px-2 sm:px-4 sm:gap-2 whitespace-nowrap"
+                >
+                  <FileTextIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span>Replies ({notice.replies.length})</span>
                 </TabsTrigger>
-                <TabsTrigger value="orders" className="flex items-center gap-2">
-                  <FileIcon className="h-4 w-4" />
-                  Orders ({notice.orders.length})
+                <TabsTrigger value="orders" className="flex items-center gap-1 px-2 sm:px-4 sm:gap-2 whitespace-nowrap">
+                  <FileIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span>Orders ({notice.orders.length})</span>
                 </TabsTrigger>
-                <TabsTrigger value="received-notices" className="flex items-center gap-2">
-                  <FileIcon className="h-4 w-4" />
-                  Received Notices ({notice.receivedNotices?.length || 0})
+                <TabsTrigger
+                  value="received-notices"
+                  className="flex items-center gap-1 px-2 sm:px-4 sm:gap-2 whitespace-nowrap"
+                >
+                  <FileIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="text-[10px] sm:text-xs md:text-sm">
+                    Received Notices ({notice.receivedNotices?.length || 0})
+                  </span>
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="replies" className="mt-4">
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Replies</CardTitle>
+                  <CardHeader className="px-3 py-2 sm:p-4">
+                    <CardTitle className="text-base sm:text-lg">Replies</CardTitle>
                   </CardHeader>
                   <CardContent className="pt-6">
                     {notice.replies.length > 0 ? (
@@ -407,11 +415,11 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                                 id="reply-date"
                                 variant="outline"
                                 className={cn(
-                                  "w-full justify-start text-left font-normal",
+                                  "w-full justify-start text-left font-normal text-xs sm:text-sm h-9",
                                   !replyDate && "text-muted-foreground",
                                 )}
                               >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                <CalendarIcon className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                                 {replyDate ? format(replyDate, "dd/MM/yyyy") : <span>Select date</span>}
                               </Button>
                             </PopoverTrigger>
@@ -428,7 +436,14 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                         <div className="grid gap-2">
                           <Label>Upload Reply Document</Label>
                           <div className="border rounded-md p-2">
-                          <UploadFile type="reply" noticeId={noticeId} clientName={notice.client?.name || ""} noticeHeading={notice.heading || ""} sectionHeading={reply.heading} onFileUpload={(url) => setReplyFileUrl(url)} />
+                            <UploadFile
+                              type="reply"
+                              noticeId={noticeId}
+                              clientName={notice.client?.name || ""}
+                              noticeHeading={notice.heading || ""}
+                              sectionHeading={reply.heading}
+                              onFileUpload={(url) => setReplyFileUrl(url)}
+                            />
                             {replyFileUrl && (
                               <p className="text-xs text-green-600 mt-1">
                                 <FileIcon className="inline-block w-3 h-3 mr-1" />
@@ -462,8 +477,8 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
 
               <TabsContent value="orders" className="mt-4">
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Orders</CardTitle>
+                  <CardHeader className="px-3 py-2 sm:p-4">
+                    <CardTitle className="text-base sm:text-lg">Orders</CardTitle>
                   </CardHeader>
                   <CardContent className="pt-6">
                     {notice.orders.length > 0 ? (
@@ -522,11 +537,11 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                                 <Button
                                   variant="outline"
                                   className={cn(
-                                    "w-full justify-start text-left font-normal",
+                                    "w-full justify-start text-left font-normal text-xs sm:text-sm h-9",
                                     !orderReceivingDate && "text-muted-foreground",
                                   )}
                                 >
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  <CalendarIcon className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                                   {orderReceivingDate ? (
                                     format(orderReceivingDate, "dd/MM/yyyy")
                                   ) : (
@@ -558,7 +573,14 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                         <div className="grid gap-2">
                           <Label>Upload Order Document</Label>
                           <div className="border rounded-md p-2">
-                          <UploadFile type="order" noticeId={noticeId} clientName={notice.client?.name || ""} noticeHeading={notice.heading || ""} sectionHeading={order.heading} onFileUpload={(url) => setOrderFileUrl(url)} />
+                            <UploadFile
+                              type="order"
+                              noticeId={noticeId}
+                              clientName={notice.client?.name || ""}
+                              noticeHeading={notice.heading || ""}
+                              sectionHeading={order.heading}
+                              onFileUpload={(url) => setOrderFileUrl(url)}
+                            />
                             {orderFileUrl && (
                               <p className="text-xs text-green-600 mt-1">
                                 <FileIcon className="inline-block w-3 h-3 mr-1" />
@@ -591,8 +613,8 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
               </TabsContent>
               <TabsContent value="received-notices" className="mt-4">
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Received Notices</CardTitle>
+                  <CardHeader className="px-3 py-2 sm:p-4">
+                    <CardTitle className="text-base sm:text-lg">Received Notices</CardTitle>
                   </CardHeader>
                   <CardContent>
                     {notice.receivedNotices?.length > 0 ? (
@@ -647,11 +669,11 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                                   id="notice-receiving-date"
                                   variant="outline"
                                   className={cn(
-                                    "w-full justify-start text-left font-normal",
+                                    "w-full justify-start text-left font-normal text-xs sm:text-sm h-9",
                                     !receivedNoticeReceivingDate && "text-muted-foreground",
                                   )}
                                 >
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  <CalendarIcon className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                                   {receivedNoticeReceivingDate ? (
                                     format(receivedNoticeReceivingDate, "dd/MM/yyyy")
                                   ) : (
@@ -682,11 +704,11 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                                   id="notice-due-date"
                                   variant="outline"
                                   className={cn(
-                                    "w-full justify-start text-left font-normal",
+                                    "w-full justify-start text-left font-normal text-xs sm:text-sm h-9",
                                     !receivedNoticeDueDate && "text-muted-foreground",
                                   )}
                                 >
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  <CalendarIcon className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                                   {receivedNoticeDueDate ? (
                                     format(receivedNoticeDueDate, "dd/MM/yyyy")
                                   ) : (
@@ -708,7 +730,14 @@ export default function NoticeDetails({ noticeId, open, onClose }: NoticeDetails
                         <div className="grid gap-2">
                           <Label>Upload Document</Label>
                           <div className="border rounded-md p-2">
-                          <UploadFile type="received-notice" noticeId={noticeId} clientName={notice.client?.name || ""} noticeHeading={notice.heading || ""} sectionHeading={receivedNotice.heading} onFileUpload={(url) => setReceivedNoticeFileUrl(url)} />
+                            <UploadFile
+                              type="received-notice"
+                              noticeId={noticeId}
+                              clientName={notice.client?.name || ""}
+                              noticeHeading={notice.heading || ""}
+                              sectionHeading={receivedNotice.heading}
+                              onFileUpload={(url) => setReceivedNoticeFileUrl(url)}
+                            />
                             {receivedNoticeFileUrl && (
                               <p className="text-xs text-green-600 mt-1">
                                 <FileIcon className="inline-block w-3 h-3 mr-1" />

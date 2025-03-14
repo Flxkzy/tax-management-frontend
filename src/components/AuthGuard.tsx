@@ -1,6 +1,8 @@
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import useAuthStore from '@/store/useAuthStore';
+"use client";
+
+import { useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import useAuthStore from "@/store/useAuthStore";
 
 interface Props {
   children: React.ReactNode;
@@ -9,14 +11,22 @@ interface Props {
 const AuthGuard: React.FC<Props> = ({ children }) => {
   const { token } = useAuthStore();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (!token) {
-      router.push('/login');
+    if (!token && pathname !== "/login") {
+      router.push("/login"); // Redirect if not logged in
     }
-  }, [token, router]);
+    if (token && pathname === "/login") {
+      router.push("/dashboard"); // Redirect logged-in users away from login page
+    }
+  }, [token, pathname, router]);
 
-  return token ? <>{children}</> : null;
+  if (!token && pathname !== "/login") {
+    return null; // Prevents flickering while checking authentication
+  }
+
+  return <>{children}</>;
 };
 
 export default AuthGuard;
