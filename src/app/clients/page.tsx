@@ -56,6 +56,7 @@ export default function ClientManagement() {
   const [selectedClientName, setSelectedClientName] = useState<string>("")
   const [selectedNoticeId, setSelectedNoticeId] = useState<string | null>(null)
   const [isNoticeDetailsOpen, setIsNoticeDetailsOpen] = useState(false)
+  const [userRole, setUserRole] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -76,6 +77,23 @@ export default function ClientManagement() {
     }
     fetchClients()
   }, [toast])
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const { data } = await axiosInstance.get("/auth/me", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        })
+        setUserRole(data.user.role)
+      } catch (error) {
+        console.error("Error fetching user role:", error)
+      }
+    }
+
+    fetchUserRole()
+  }, [])
 
   useEffect(() => {
     let result = clients
@@ -360,17 +378,19 @@ export default function ClientManagement() {
                             </span>
                           </Badge>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => {
-                            e.stopPropagation() // Prevent triggering client click
-                            setClientToDelete(client._id)
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {userRole && userRole.trim().toLowerCase() === "admin" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation() // Prevent triggering client click
+                              setClientToDelete(client._id)
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </CardHeader>
                     <CardContent className="pb-3">
@@ -452,22 +472,25 @@ export default function ClientManagement() {
                       </div>
                       <div className="col-span-3 text-sm text-muted-foreground">{client._id.slice(-6)}</div>
                       <div className="col-span-1 flex justify-end">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setClientToDelete(client._id)
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {userRole && userRole.trim().toLowerCase() === "admin" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setClientToDelete(client._id)
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
               )}
+              7
             </div>
           )}
         </TabsContent>
@@ -500,6 +523,7 @@ export default function ClientManagement() {
           onSelectNotice={handleSelectNotice}
           className="w-full"
           selectedClientName={selectedClientName}
+          userRole={userRole}
         />
       </div>
     </div>

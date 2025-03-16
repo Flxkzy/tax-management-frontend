@@ -39,6 +39,7 @@ export default function NoticesPage() {
   const [selectedClient, setSelectedClient] = useState<string>("")
   const [selectedTaxYear, setSelectedTaxYear] = useState<string>("")
   const [selectedTaxOffice, setSelectedTaxOffice] = useState<string>("")
+  const [userRole, setUserRole] = useState<string>("user"); // Default to 'user'
 
   useEffect(() => {
     fetchClients()
@@ -82,6 +83,23 @@ export default function NoticesPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const { data } = await axiosInstance.get("/auth/me", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`, // ✅ Include token
+          },
+        });
+        setUserRole(data.user.role);
+      } catch (error) {
+        console.error("Error fetching user role:", error);
+      }
+    };
+  
+    fetchUserRole();
+  }, []);
 
   const fetchClients = async () => {
     try {
@@ -240,6 +258,7 @@ export default function NoticesPage() {
               selectedClient={selectedClient}
               selectedTaxYear={selectedTaxYear}
               selectedTaxOffice={selectedTaxOffice}
+              userRole={userRole}
             />
           </div>
         )}

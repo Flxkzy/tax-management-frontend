@@ -40,6 +40,7 @@ interface Notice {
 }
 
 interface NoticeListProps {
+  userRole: string
   limit?: number
   className?: string
   clientId?: string
@@ -58,6 +59,7 @@ export default function NoticeList({
   selectedClient,
   selectedTaxYear,
   selectedTaxOffice,
+  userRole
 
 }: NoticeListProps) {
   const { toast } = useToast()
@@ -356,6 +358,7 @@ export default function NoticeList({
                             Mark as Pending
                           </DropdownMenuItem>
                         )}
+                        {userRole === "admin" && (
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
                           onClick={(e) => {
@@ -367,6 +370,7 @@ export default function NoticeList({
                           <Trash2 className="mr-2 h-4 w-4" />
                           Delete Notice
                         </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
